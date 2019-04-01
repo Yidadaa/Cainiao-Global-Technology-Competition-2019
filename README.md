@@ -8,3 +8,6 @@ The private repo for Cainiao Global Technology Competition 2019 vid HuaHuaGuai.
 
 ### Paper List
 - [CVPR18 - Learning Depth from Monocular Videos using Direct Methods](https://www.ci2cv.net/media/papers/Wang_Learning_Depth_From_CVPR_2018_paper.pdf)
+- [CVPR18 - Unsupervised Learning of Depth and Ego-Motion from Monocular Video Using 3D Geometric Constraints](https://paperswithcode.com/paper/unsupervised-learning-of-depth-and-ego-motion-2)
+- [2018 - Depth Prediction Without the Sensors: Leveraging Structure for Unsupervised
+Learning from Monocular Videos](https://arxiv.org/pdf/1811.06152v1.pdf)
