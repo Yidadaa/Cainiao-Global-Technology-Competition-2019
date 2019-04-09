@@ -17,6 +17,10 @@ ros接入IMU数据，打包发布topic](https://blog.csdn.net/xinmei4275/article
 - [ ] 4. 估计物体尺寸
   - [ ] 4.1 处理目标物体的点云图，生成最小外接立方体
   - [ ] 4.2 使用计数法调优立方体尺寸
+  
+#### 额外工作
+- [ ] 编写手机app的界面
+- [ ] 搭建服务端web架构，处理视频/IMU数据上传工作
 
 ### 文档资源
 - [2019菜鸟全球科技挑战赛题目](https://tianchi.aliyun.com/competition/entrance/231706/information)
