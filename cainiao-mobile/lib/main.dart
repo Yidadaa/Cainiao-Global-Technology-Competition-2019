@@ -45,6 +45,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   EventCache gcache = EventCache();
   EventCache acache = EventCache();
+  List<CameraImage> imcache;
 
   CameraController controller;
   Timer _timer;
@@ -53,14 +54,18 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     gyroscopeEvents.listen((GyroscopeEvent event) {
-      gcache.addEvent(CNEvent(event.x, event.y, event.z));
+      if (isRecording) {
+        gcache.addEvent(CNEvent(event.x, event.y, event.z));
+      }
       int n = gcache.cache.length;
       if (n % 100 == 0) {
         updateText(event2string(event.x, event.y, event.z) + ' '+ gcache.cache.length.toString(), "");
       }
     });
     accelerometerEvents.listen((AccelerometerEvent event) {
-      acache.addEvent(CNEvent(event.x, event.y, event.z));
+      if (isRecording) {
+        acache.addEvent(CNEvent(event.x, event.y, event.z));
+      }
       int n = acache.cache.length;
       if (n % 100 == 0) {
         updateText("", event2string(event.x, event.y, event.z) + ' '+ acache.cache.length.toString());
@@ -86,13 +91,39 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void onRecordButtonPressed() {
     setState(() {
-      if (isRecording) {
-        timeText = '0s';
-      }
       startTime = new DateTime.now();
       currentTime = new DateTime.now();
       isRecording = !isRecording;
+      if (isRecording) {
+        timeText = '0s';
+        endRecord();
+      } else {
+        startRecord();
+      }
     });
+  }
+
+  void startRecord() {
+    if (controller.value.isInitialized &&
+        !controller.value.isRecordingVideo &&
+        !controller.value.isStreamingImages &&
+        !controller.value.isTakingPicture) {
+      clearCache();
+      controller.startImageStream((CameraImage img) {
+        imcache.add(img);
+      });
+    }
+  }
+
+  void endRecord() {
+    controller.stopImageStream();
+    // TODO: 持久化录制的数据，并发送到服务端
+  }
+
+  void clearCache() {
+    gcache.clear();
+    acache.clear();
+    imcache.clear();
   }
 
   void initTimer() {
