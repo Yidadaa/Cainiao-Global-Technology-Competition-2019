@@ -13,7 +13,6 @@ Future main() async {
 }
 
 class MyApp extends StatelessWidget {
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -44,6 +43,9 @@ class _MyHomePageState extends State<MyHomePage> {
   DateTime currentTime = new DateTime.now();
   String timeText = "0s";
 
+  EventCache gcache = EventCache();
+  EventCache acache = EventCache();
+
   CameraController controller;
   Timer _timer;
 
@@ -51,10 +53,18 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     gyroscopeEvents.listen((GyroscopeEvent event) {
-      updateText(event2string(event.x, event.y, event.z), "");
+      gcache.addEvent(CNEvent(event.x, event.y, event.z));
+      int n = gcache.cache.length;
+      if (n % 100 == 0) {
+        updateText(event2string(event.x, event.y, event.z) + ' '+ gcache.cache.length.toString(), "");
+      }
     });
     accelerometerEvents.listen((AccelerometerEvent event) {
-      updateText("", event2string(event.x, event.y, event.z));
+      acache.addEvent(CNEvent(event.x, event.y, event.z));
+      int n = acache.cache.length;
+      if (n % 100 == 0) {
+        updateText("", event2string(event.x, event.y, event.z) + ' '+ acache.cache.length.toString());
+      }
     });
     controller = CameraController(cameras[0], ResolutionPreset.medium);
     controller.initialize().then((_) {
