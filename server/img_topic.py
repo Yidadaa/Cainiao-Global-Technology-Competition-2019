@@ -11,7 +11,6 @@ import base64
 import ntpath
 import time
 
-rospy.init_node('listener', anonymous=True)
 image_publisher = rospy.Publisher('/cainiao_camera/image_raw', Image, queue_size=1)
 bridge = CvBridge()
 
@@ -20,9 +19,10 @@ def publish_image(image_data, ts):
     image_publisher.publish(image)
     return
     image = Image()
-    ts = rospy.Time.from_sec(float(ts) / 1000)
+    # ts = rospy.Time.from_sec(float(ts) / 1000)
+    ts = rospy.Time.now()
     header = Header(stamp=ts)
-    header.frame_id = 'map'
+    header.frame_id = 'world'
     image.height = image_data.shape[0]
     image.width = image_data.shape[1]
     image.encoding = 'bgr8'
@@ -37,11 +37,13 @@ def publish_video(video_path):
     cvideo = cv2.VideoCapture(video_path)
     success, image = cvideo.read()
 
+    angle = getRotationOf(video_path)
+
     (h, w) = image.shape[:2]
-    print(h, w)
+    if angle == 0:
+        [h, w] = [w, h]
     center = (w / 2, h / 2)
-    angle = -getRotationOf(video_path)
-    M = cv2.getRotationMatrix2D(center, angle, 1.0)
+    M = cv2.getRotationMatrix2D(center, -angle, 1.0)
 
     while success:
         delay = 1000 / 30
@@ -54,7 +56,7 @@ def publish_video(video_path):
 def getRotationOf(video):
     sh = 'ffprobe -loglevel error -select_streams v:0 -show_entries stream_tags=rotate -of default=nw=1:nk=1 -i ' + video
     rotation = os.popen(sh).read().replace('\n', '')
-    return int(rotation)
+    return 0 if len(rotation) == 0 else int(rotation)
 
 if __name__ == '__main__':
     root = './files/'
