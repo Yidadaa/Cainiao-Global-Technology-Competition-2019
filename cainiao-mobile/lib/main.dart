@@ -3,6 +3,7 @@ import 'package:sensors/sensors.dart';
 import 'dart:async';
 import 'package:camera/camera.dart';
 
+import './data-page.dart';
 import './utils.dart';
 
 List<CameraDescription> cameras;
@@ -35,6 +36,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  var _scaffoldKey = new GlobalKey<ScaffoldState>();
+
   String gyroscopeData = "";
   String accelerometerData = "";
 
@@ -45,10 +48,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
   EventCache gcache = EventCache();
   EventCache acache = EventCache();
-  List<CameraImage> imcache;
+  CNImageCache imcache = CNImageCache();
+  String videoPath = '';
+
+  String host = '';
 
   CameraController controller;
   Timer _timer;
+
+  TextEditingController textController = TextEditingController();
 
   @override
   void initState() {
@@ -58,8 +66,12 @@ class _MyHomePageState extends State<MyHomePage> {
         gcache.addEvent(CNEvent(event.x, event.y, event.z));
       }
       int n = gcache.cache.length;
-      if (n % 100 == 0) {
-        updateText(event2string(event.x, event.y, event.z) + ' '+ gcache.cache.length.toString(), "");
+      if (n % 100 == 1) {
+        updateText(
+            event2string(event.x, event.y, event.z) +
+                ' ' +
+                gcache.cache.length.toString(),
+            "");
       }
     });
     accelerometerEvents.listen((AccelerometerEvent event) {
@@ -67,11 +79,15 @@ class _MyHomePageState extends State<MyHomePage> {
         acache.addEvent(CNEvent(event.x, event.y, event.z));
       }
       int n = acache.cache.length;
-      if (n % 100 == 0) {
-        updateText("", event2string(event.x, event.y, event.z) + ' '+ acache.cache.length.toString());
+      if (n % 100 == 1) {
+        updateText(
+            "",
+            event2string(event.x, event.y, event.z) +
+                ' ' +
+                acache.cache.length.toString());
       }
     });
-    controller = CameraController(cameras[0], ResolutionPreset.medium);
+    controller = CameraController(cameras[0], ResolutionPreset.high);
     controller.initialize().then((_) {
       if (!mounted) {
         return;
@@ -82,42 +98,51 @@ class _MyHomePageState extends State<MyHomePage> {
     print("初始化完毕");
   }
 
-  void updateText(String gyroscopeData_, String accelerometerData_) {
+  void updateText(String _gyroscopeData, String _accelerometerData) {
     setState(() {
-      if (gyroscopeData_.length > 0) gyroscopeData = gyroscopeData_;
-      if (accelerometerData_.length > 0) accelerometerData = accelerometerData_;
+      if (_gyroscopeData.length > 0) gyroscopeData = _gyroscopeData;
+      if (_accelerometerData.length > 0) accelerometerData = _accelerometerData;
     });
   }
 
-  void onRecordButtonPressed() {
+  void onRecordButtonPressed() async {
+    String hostname = await getHost();
     setState(() {
       startTime = new DateTime.now();
       currentTime = new DateTime.now();
-      isRecording = !isRecording;
       if (isRecording) {
         timeText = '0s';
         endRecord();
       } else {
         startRecord();
       }
+      isRecording = !isRecording;
+      host = hostname;
     });
   }
 
-  void startRecord() {
+  void startRecord() async {
     if (controller.value.isInitialized &&
         !controller.value.isRecordingVideo &&
         !controller.value.isStreamingImages &&
         !controller.value.isTakingPicture) {
       clearCache();
-      controller.startImageStream((CameraImage img) {
-        imcache.add(img);
-      });
+      // controller.startImageStream((CameraImage img) {
+      //   imcache.addImage(CNImage(img));
+      // });
+      videoPath = await getVideoPath();
+      controller.startVideoRecording(videoPath);
     }
   }
 
   void endRecord() {
-    controller.stopImageStream();
-    // TODO: 持久化录制的数据，并发送到服务端
+    // controller.stopImageStream();
+    controller.stopVideoRecording();
+    showSnackBar(true, '');
+    save2file(acache, gcache, imcache, videoPath).then((file) {
+      print(file.video.path);
+      showSnackBar(false, file.name);
+    });
   }
 
   void clearCache() {
@@ -132,10 +157,62 @@ class _MyHomePageState extends State<MyHomePage> {
       setState(() {
         if (isRecording) {
           currentTime = currentTime.add(oneSec);
-          timeText = currentTime.difference(startTime).inSeconds.toString() + 's';
+          timeText =
+              currentTime.difference(startTime).inSeconds.toString() + 's';
         }
       });
     });
+  }
+
+  void showHostDialog(context) {
+    showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text('输入Host地址'),
+            content: TextField(
+              controller: textController,
+            ),
+            actions: <Widget>[
+              FlatButton(
+                child: Text('取消'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+              FlatButton(
+                child: Text('确认'),
+                onPressed: () {
+                  setState(() {
+                    host = textController.text;
+                  });
+                  setHost(host);
+                  Navigator.of(context).pop();
+                },
+              )
+            ],
+          );
+        });
+  }
+
+  void showSnackBar(bool isSaving, String filename) {
+    final savingSnackBar = SnackBar(
+        content: Row(
+      children: <Widget>[Text('正在保存文件'), const CircularProgressIndicator()],
+    ));
+
+    final doneSnackBar = SnackBar(
+      content: Text(filename),
+      action: SnackBarAction(
+        label: '查看',
+        onPressed: () {
+          Navigator.push(
+              context, MaterialPageRoute(builder: (context) => DataPage()));
+        },
+      ),
+    );
+    // _scaffoldKey.currentState.removeCurrentSnackBar();
+    _scaffoldKey.currentState.showSnackBar(isSaving ? savingSnackBar : doneSnackBar);
   }
 
   @override
@@ -150,9 +227,23 @@ class _MyHomePageState extends State<MyHomePage> {
     if (!controller.value.isInitialized) {
       return Container();
     }
+
     return Scaffold(
+      key: _scaffoldKey,
       appBar: AppBar(
         title: Text(widget.title),
+        actions: <Widget>[
+          IconButton(
+            icon: Icon(
+              Icons.folder,
+              color: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.push(
+                  context, MaterialPageRoute(builder: (context) => DataPage()));
+            },
+          ),
+        ],
       ),
       body: Column(
         children: <Widget>[
@@ -167,10 +258,22 @@ class _MyHomePageState extends State<MyHomePage> {
           AspectRatio(
               aspectRatio: controller.value.aspectRatio,
               child: CameraPreview(controller)),
-          RaisedButton.icon(
-            label: Text(isRecording ? timeText : '开始录制'),
-            onPressed: onRecordButtonPressed,
-            icon: Icon(isRecording ? Icons.stop : Icons.play_arrow),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: <Widget>[
+              RaisedButton.icon(
+                label: Text(isRecording ? timeText : '开始录制'),
+                onPressed: onRecordButtonPressed,
+                icon: Icon(isRecording ? Icons.stop : Icons.play_arrow),
+              ),
+              RaisedButton.icon(
+                label: Text(host.length == 0 ? '未设置地址' : host),
+                onPressed: () {
+                  showHostDialog(context);
+                },
+                icon: Icon(Icons.computer),
+              )
+            ],
           )
         ],
       ),
