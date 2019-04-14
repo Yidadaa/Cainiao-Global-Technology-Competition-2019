@@ -172,7 +172,7 @@ Future<List> listFiles() async {
 
 Future<String> getHost() async {
   var prefs = await SharedPreferences.getInstance();
-  return prefs.getString('host');
+  return prefs.getString('host')??'';
 }
 
 Future setHost(String host) async {
@@ -184,7 +184,7 @@ Future uploadFile(FileWithInfo f, Function cb) async {
   String host = await getHost();
   FormData data = new FormData.from(
       {
-        'file': new UploadFileInfo(f.file, basename(f.file.path)),
+        'file': new UploadFileInfo(f.file, basename(f.file.path).replaceAll('_uploaded', '')),
         'video': new UploadFileInfo(f.video, basename(f.video.path))
       });
   return await Dio().post(host, data: data, onSendProgress: cb);

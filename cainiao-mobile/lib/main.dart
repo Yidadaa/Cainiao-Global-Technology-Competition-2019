@@ -140,7 +140,6 @@ class _MyHomePageState extends State<MyHomePage> {
     controller.stopVideoRecording();
     showSnackBar(true, '');
     save2file(acache, gcache, imcache, videoPath).then((file) {
-      print(file.video.path);
       showSnackBar(false, file.name);
     });
   }
@@ -211,7 +210,7 @@ class _MyHomePageState extends State<MyHomePage> {
         },
       ),
     );
-    // _scaffoldKey.currentState.removeCurrentSnackBar();
+    _scaffoldKey.currentState.removeCurrentSnackBar();
     _scaffoldKey.currentState.showSnackBar(isSaving ? savingSnackBar : doneSnackBar);
   }
 

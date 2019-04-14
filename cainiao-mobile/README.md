@@ -17,3 +17,4 @@ samples, guidance on mobile development, and a full API reference.
 
 ### 注意事项：
 - 需要修改的地方，修改`SensorsPlugin.java`第53行的传感器刷新延时为`10000`
+- `\flutter\.pub-cache\hosted\pub.flutter-io.cn\camera-0.4.2\android\src\main\java\io\flutter\plugins\camera\CameraPlugin.java`中第`469`和`471`行修改。

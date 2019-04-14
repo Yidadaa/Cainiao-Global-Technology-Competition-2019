@@ -26,24 +26,20 @@ class _DataPageState extends State<DataPage> {
                   onTap: () {}),
               ListTile(
                   leading: Icon(Icons.file_upload),
-                  title: Text("上传此文件"),
+                  title: Text(f.isUploaded ? "重新上传此文件" : "上传此文件"),
                   onTap: () {
-                    if (!f.isUploaded) {
-                      loadingName = f.name;
-                      uploadFile(f, (int cur, int total) {
-                        setState(() {
-                          loadingPercent = cur/total * 100;
-                        });
-                        if (cur == total) {
-                          loadingName = '';
-                          f.updateLoadStatus(true);
-                          getFiles();
-                          toast('上传完成');
-                        }
+                    loadingName = f.name;
+                    uploadFile(f, (int cur, int total) {
+                      setState(() {
+                        loadingPercent = cur/total * 100;
                       });
-                    } else {
-                      toast('此文件已上传');
-                    }
+                      if (cur == total) {
+                        loadingName = '';
+                        f.updateLoadStatus(true);
+                        getFiles();
+                        toast('上传完成');
+                      }
+                    });
                     Navigator.of(context).pop();
                   }),
               ListTile(
